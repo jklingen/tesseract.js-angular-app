@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { TesseractWorker } from 'tesseract.js';
 
 @Component({
@@ -8,16 +8,45 @@ import { TesseractWorker } from 'tesseract.js';
 })
 export class AppComponent {
   title = 'tesseract.js-angular-app';
-  ocrResult = 'Recognizing...';
+  ocrResult = '';
+  imgUrl = '';
+
+  @ViewChild('overlay', null) overlay;
+
   constructor() {
+
+  }
+
+  onAttachmentChange(event) {
+    this.handleFiles(event.target.files);
+  }
+
+  handleFiles(files) {
+    if (files && files.length) {
+      const reader = new FileReader();
+      const [file] = files;
+
+      reader.onload = () => {
+        const data: string = reader.result as string;
+        this.imgUrl = data;
+        this.processImage(data);
+
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  processImage(buffer) {
     const worker = new TesseractWorker();
     worker
-      .recognize('https://tesseract.projectnaptha.com/img/eng_bw.png')
+      .recognize(buffer, 'deu')
       .progress((p) => {
-        console.log('progress', p);
+        const percent = p.progress * 100;
+        this.ocrResult = `${p.status}: ${percent}%`;
       })
-      .then(({ text }) => {
-        this.ocrResult = text;
+      .then((result) => {
+        console.log(result);
+        this.ocrResult = result.text;
         worker.terminate();
       });
   }
